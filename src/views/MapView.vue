@@ -1,22 +1,24 @@
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { seedData } from '../data'
 import { state } from '../state'
+import { ICONS } from '../icons'
 
 const TYPES = {
-  olt: { label: 'OLT', color: '#6d28d9' },
-  cto: { label: 'CTO', color: '#0e7c86' },
-  ceo: { label: 'CEO', color: '#d97706' },
-  pole: { label: 'Poste', color: '#64748b' },
-  tower: { label: 'Torre', color: '#111827' },
-  customer: { label: 'Cliente', color: '#be185d' },
-  cable: { label: 'Cabo', color: '#dc2626' },
+  olt: { label: 'OLT', color: '#6d28d9', size: 30, geo: true },
+  cto: { label: 'CTO', color: '#0e7c86', size: 30, geo: true },
+  ceo: { label: 'CEO', color: '#d97706', size: 30, geo: true },
+  pole: { label: 'Poste', color: '#64748b', size: 30, geo: true },
+  tower: { label: 'Torre', color: '#111827', size: 46, geo: true },
+  customer: { label: 'Cliente', color: '#be185d', size: 28, geo: true },
+  cable: { label: 'Cabo', color: '#dc2626', geo: false },
 }
 
 const mapEl = ref(null)
 let map
+let groups = {}
 
 const items = reactive({
   olt: seedData.olt,
@@ -28,7 +30,57 @@ const items = reactive({
   cable: seedData.cable,
 })
 
+const visible = reactive({ olt: true, cto: true, ceo: true, pole: true, tower: true, customer: true, cable: true })
 const counts = computed(() => Object.fromEntries(Object.keys(TYPES).map((t) => [t, items[t].length])))
+
+function ctoFree(cto) {
+  const used = items.customer.filter((c) => c.cto === cto.id).length
+  return Math.max(0, (Number(cto.capacity) || 0) - used)
+}
+
+function makeIcon(t, it) {
+  const dim = it.status === 'inactive' ? ' dim' : it.status === 'planned' ? ' plan' : ''
+  const free = t === 'cto' ? ctoFree(it) : null
+  const full = t === 'cto' && free === 0 ? ' full' : ''
+  const badge = t === 'cto' ? `<i class="bd">${free}</i>` : ''
+  const size = TYPES[t].size || 30
+  return L.divIcon({
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html: `<div class="mk${dim}${full}" style="--c:${TYPES[t].color}"><span class="ic">${ICONS[t]}</span>${badge}</div>`,
+  })
+}
+
+function renderAll() {
+  for (const t of Object.keys(TYPES)) {
+    if (!groups[t]) continue
+    groups[t].clearLayers()
+    for (const it of items[t]) {
+      if (t === 'cable') {
+        const line = L.polyline(it.path, { color: it.color, weight: it.weight }).addTo(groups[t])
+        line.bindTooltip(`${it.name}`)
+        continue
+      }
+      if (it.latitude == null) continue
+      const m = L.marker([it.latitude, it.longitude], { icon: makeIcon(t, it) }).addTo(groups[t])
+      const tip = t === 'cto' ? `${it.name} - ${ctoFree(it)} livres de ${it.capacity}` : it.name
+      m.bindTooltip(tip)
+      m.bindPopup(`<b>${TYPES[t].label}: ${it.name}</b>`)
+    }
+  }
+}
+
+watch(
+  visible,
+  (v) => {
+    for (const t in v) {
+      if (v[t]) map.addLayer(groups[t])
+      else map.removeLayer(groups[t])
+    }
+  },
+  { deep: true },
+)
 
 onMounted(() => {
   const s = state.settings
@@ -39,28 +91,11 @@ onMounted(() => {
   }).addTo(map)
   L.control.zoom({ position: 'bottomright' }).addTo(map)
 
-  for (const c of items.cable) {
-    L.polyline(c.path, { color: c.color, weight: c.weight }).addTo(map)
-  }
+  for (const t in TYPES) groups[t] = L.layerGroup().addTo(map)
+  renderAll()
 
-  const pts = []
-  for (const t of ['olt', 'cto', 'ceo', 'pole', 'tower', 'customer']) {
-    for (const it of items[t]) {
-      if (it.latitude == null) continue
-      pts.push([it.latitude, it.longitude])
-      L.circleMarker([it.latitude, it.longitude], {
-        radius: 7,
-        color: TYPES[t].color,
-        fillColor: TYPES[t].color,
-        fillOpacity: 0.9,
-        weight: 2,
-      })
-        .addTo(map)
-        .bindPopup(`<b>${TYPES[t].label}: ${it.name}</b>`)
-    }
-  }
-
-  if (pts.length) map.fitBounds(L.latLngBounds(pts), { maxZoom: 16, padding: [50, 50] })
+  const pts = [...items.cto, ...items.olt, ...items.ceo].map((x) => [x.latitude, x.longitude])
+  if (pts.length) map.fitBounds(L.latLngBounds(pts), { maxZoom: 17, padding: [60, 60] })
 })
 
 onBeforeUnmount(() => {
@@ -81,7 +116,8 @@ onBeforeUnmount(() => {
       <aside class="tools">
         <h2>Camadas</h2>
         <label v-for="(T, t) in TYPES" :key="t" class="layer">
-          <span class="dot" :style="{ background: T.color }"></span>
+          <input type="checkbox" v-model="visible[t]" />
+          <span class="ti" :style="{ color: T.color }" v-html="ICONS[t]"></span>
           {{ T.label }}
           <small>{{ counts[t] }}</small>
         </label>
@@ -94,6 +130,30 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
+<style>
+.mk {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: var(--c);
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 1px 1.5px rgba(0, 0, 0, .35));
+}
+.mk .ic { width: 100%; height: 100%; display: grid; place-items: center; }
+.mk .ic svg { width: 100%; height: 100%; }
+.mk .ic img { width: 100%; height: 100%; object-fit: contain; }
+.mk .bd {
+  position: absolute; top: -6px; right: -8px; min-width: 16px; height: 16px; padding: 0 3px;
+  border-radius: 50%; background: var(--c); color: #fff; font-size: 10px; font-style: normal;
+  font-weight: 700; line-height: 1; display: grid; place-items: center;
+}
+.mk.dim { opacity: .5; }
+.mk.plan { opacity: .75; }
+.mk.full { color: #b91c1c; }
+.mk.full .bd { background: #b91c1c; }
+</style>
+
 <style scoped>
 .app { height: 100%; display: flex; flex-direction: column; }
 .top { background: var(--ink); color: #fff; display: flex; align-items: center; gap: 16px; padding: 0 14px; height: 52px; flex: none; }
@@ -103,8 +163,11 @@ onBeforeUnmount(() => {
 .tools { width: 190px; flex: none; background: #fff; border-right: 1px solid var(--line); padding: 8px 12px; overflow: auto; }
 .tools h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
 .layer { display: flex; align-items: center; gap: 8px; margin: 0; padding: 4px 0; color: var(--ink); font-size: 13px; }
+.layer input { width: auto; }
 .layer small { margin-left: auto; color: var(--muted); }
-.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.ti { width: 18px; height: 18px; display: inline-block; flex: none; }
+.ti :deep(svg) { width: 100%; height: 100%; }
+.ti :deep(img) { width: 100%; height: 100%; object-fit: contain; }
 .mapwrap { flex: 1; position: relative; min-width: 0; }
 .map { position: absolute; inset: 0; }
 </style>
