@@ -903,7 +903,7 @@ const ctoInfo = computed(() => {
   const excludeId = p.type === 'customer' && p.id ? p.id : null
   const usedPorts = new Set()
   for (const c of items.customer) {
-    if (c.cto === ctoId) continue
+    if (c.cto !== ctoId) continue
     if (excludeId && c.id === excludeId) continue
     if (c.port != null && c.port !== '') usedPorts.add(Number(c.port))
   }
