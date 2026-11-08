@@ -3,8 +3,9 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { seedData } from '../data'
-import { state } from '../state'
+import { state, formatDist } from '../state'
 import { ICONS } from '../icons'
+import CableStyle from '../components/CableStyle.vue'
 
 const TYPES = {
   olt: { label: 'OLT', color: '#6d28d9', size: 30, geo: true },
@@ -15,6 +16,8 @@ const TYPES = {
   customer: { label: 'Cliente', color: '#be185d', size: 28, geo: true },
   cable: { label: 'Cabo', color: '#dc2626', geo: false },
 }
+
+const CABLE_TYPES = { aerial: 'Aereo', underground: 'Subterraneo', backbone: 'Backbone', drop: 'Drop' }
 
 const mapEl = ref(null)
 let map
@@ -31,7 +34,10 @@ const items = reactive({
 })
 
 const visible = reactive({ olt: true, cto: true, ceo: true, pole: true, tower: true, customer: true, cable: true })
+const selected = ref(null)
+
 const counts = computed(() => Object.fromEntries(Object.keys(TYPES).map((t) => [t, items[t].length])))
+const totalCable = computed(() => items.cable.reduce((a, c) => a + (c.length_m || 0), 0))
 
 function ctoFree(cto) {
   const used = items.customer.filter((c) => c.cto === cto.id).length
@@ -52,14 +58,26 @@ function makeIcon(t, it) {
   })
 }
 
+function cableLine(c) {
+  return c.path || []
+}
+
 function renderAll() {
   for (const t of Object.keys(TYPES)) {
     if (!groups[t]) continue
     groups[t].clearLayers()
     for (const it of items[t]) {
       if (t === 'cable') {
-        const line = L.polyline(it.path, { color: it.color, weight: it.weight }).addTo(groups[t])
-        line.bindTooltip(`${it.name}`)
+        const line = L.polyline(cableLine(it), {
+          color: it.color || '#dc2626',
+          weight: Number(it.weight) || 4,
+          opacity: it.status === 'inactive' ? 0.4 : 0.95,
+          dashArray: it.status === 'planned' ? '8 6' : null,
+        }).addTo(groups[t])
+        line.bindTooltip(`${it.name} - ${formatDist(it.length_m)} - ${it.fiber_count} FO`)
+        line.on('click', () => {
+          selected.value = it
+        })
         continue
       }
       if (it.latitude == null) continue
@@ -90,6 +108,7 @@ onMounted(() => {
     attribution: '&copy; OpenStreetMap',
   }).addTo(map)
   L.control.zoom({ position: 'bottomright' }).addTo(map)
+  L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map)
 
   for (const t in TYPES) groups[t] = L.layerGroup().addTo(map)
   renderAll()
@@ -121,11 +140,29 @@ onBeforeUnmount(() => {
           {{ T.label }}
           <small>{{ counts[t] }}</small>
         </label>
+
+        <h2>Rede</h2>
+        <div v-for="(l, k) in CABLE_TYPES" :key="k" class="layer"><span class="cline"></span>{{ l }}</div>
+        <p class="muted total">Rede de cabos: <b>{{ formatDist(totalCable) }}</b></p>
       </aside>
 
       <main class="mapwrap">
         <div ref="mapEl" class="map"></div>
       </main>
+
+      <aside v-if="selected" class="panel">
+        <div class="phead">
+          <h3>Cabo</h3>
+          <button class="btn ghost" @click="selected = null" aria-label="Fechar">x</button>
+        </div>
+        <p class="len"><b>{{ selected.name }}</b></p>
+        <p class="len">Tipo: <b>{{ CABLE_TYPES[selected.cable_type] || selected.cable_type }}</b></p>
+        <p class="len">Fibras: <b>{{ selected.fiber_count }}</b></p>
+        <p class="len">Comprimento: <b>{{ formatDist(selected.length_m) }}</b> <small class="muted">({{ selected.path.length }} pontos)</small></p>
+        <p class="len">Status: <b>{{ selected.status }}</b></p>
+        <div class="preview"><i :style="{ height: (selected.weight || 4) + 'px', background: selected.color }"></i></div>
+        <CableStyle :color="selected.color" :weight="selected.weight" />
+      </aside>
     </div>
   </div>
 </template>
@@ -165,9 +202,19 @@ onBeforeUnmount(() => {
 .layer { display: flex; align-items: center; gap: 8px; margin: 0; padding: 4px 0; color: var(--ink); font-size: 13px; }
 .layer input { width: auto; }
 .layer small { margin-left: auto; color: var(--muted); }
+.cline { width: 18px; height: 3px; background: var(--primary); border-radius: 2px; flex: none; }
 .ti { width: 18px; height: 18px; display: inline-block; flex: none; }
 .ti :deep(svg) { width: 100%; height: 100%; }
 .ti :deep(img) { width: 100%; height: 100%; object-fit: contain; }
+.total { margin-top: 6px; font-size: 12px; }
 .mapwrap { flex: 1; position: relative; min-width: 0; }
 .map { position: absolute; inset: 0; }
+.panel { width: 300px; flex: none; background: #fff; border-left: 1px solid var(--line); padding: 12px 16px 20px; overflow: auto; }
+.phead { display: flex; align-items: center; justify-content: space-between; }
+.phead h3 { margin: 0; font-size: 16px; }
+.len { margin: 14px 0 8px; }
+.small { font-size: 12px; }
+.preview { margin-top: 14px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+.preview i { display: block; width: 100%; border-radius: 2px; }
+.btn.ghost { background: transparent; border-color: transparent; }
 </style>
