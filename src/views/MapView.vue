@@ -7,6 +7,7 @@ import api, { logout, errText } from '../api'
 import { state, formatDist } from '../state'
 import { ICONS } from '../icons'
 import CableStyle from '../components/CableStyle.vue'
+import { toGeoJSON } from '../exporters/geojson'
 
 const router = useRouter()
 
@@ -932,6 +933,16 @@ const boxCablesText = computed(() => {
 const refOptions = (k) => (k === 'olt' ? items.olt : items.cto)
 const counts = computed(() => Object.fromEntries(Object.keys(TYPES).map((t) => [t, items[t].length])))
 const totalCable = computed(() => items.cable.reduce((a, c) => a + c.length_m, 0))
+
+function exportGeoJSON() {
+  const blob = new Blob([JSON.stringify(toGeoJSON(items), null, 2)], { type: 'application/geo+json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'rede-ftth.geojson'
+  a.click()
+  URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -983,6 +994,8 @@ const totalCable = computed(() => items.cable.reduce((a, c) => a + c.length_m, 0
           <small>{{ counts[t] }}</small>
         </label>
         <p class="muted total">Rede de cabos: <b>{{ formatDist(totalCable) }}</b></p>
+        <h2>Exportar</h2>
+        <button class="tool" @click="exportGeoJSON">GeoJSON</button>
       </aside>
 
       <main class="mapwrap">
