@@ -3,7 +3,7 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import api, { logout, errText } from '../api'
+import api, { logout, errText, exportData, importData } from '../api'
 import { state, formatDist } from '../state'
 import { ICONS } from '../icons'
 import CableStyle from '../components/CableStyle.vue'
@@ -64,6 +64,7 @@ const q = ref('')
 const results = ref([])
 const showResults = ref(false)
 const mapEl = ref(null)
+const fileInput = ref(null)
 
 let map, groups = {}, objs = {}, drawLine, drawDots = [], vertexMarkers = [], searchTimer, linkLayer, dropPreview
 let cableHit = null, pendingAttach = null // cabo clicado (modo adicionar) / cabo ao qual o novo elemento será ligado
@@ -403,6 +404,36 @@ async function createDropCable(customer, ctoId) {
 async function loadAll() {
   await Promise.all(Object.keys(TYPES).map(async (t) => { items[t] = (await api.get(`/${TYPES[t].plural}/`)).data }))
   renderAll()
+}
+
+/* ---------- backup: exportar / importar JSON ---------- */
+function exportJson() {
+  const blob = new Blob([JSON.stringify(exportData(), null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `dukon-ftth-${new Date().toISOString().slice(0, 10)}.json`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+async function importJson(file) {
+  try {
+    importData(JSON.parse(await file.text()))
+    await loadAll()
+    closePanel()
+    alert('Dados importados com sucesso.')
+  } catch (e) {
+    alert('Falha ao importar: ' + errText(e))
+  }
+}
+function onFilePick(e) {
+  const file = e.target.files && e.target.files[0]
+  e.target.value = ''
+  if (!file) return
+  if (!confirm('Importar substitui todos os dados atuais. Continuar?')) return
+  importJson(file)
 }
 
 /* ---------- painel ---------- */
@@ -996,6 +1027,10 @@ function exportGeoJSON() {
         <p class="muted total">Rede de cabos: <b>{{ formatDist(totalCable) }}</b></p>
         <h2>Exportar</h2>
         <button class="tool" @click="exportGeoJSON">GeoJSON</button>
+        <h2>Dados</h2>
+        <button class="tool" @click="exportJson">Exportar JSON</button>
+        <button v-if="canEdit" class="tool" @click="fileInput?.click()">Importar JSON</button>
+        <input ref="fileInput" type="file" accept="application/json,.json" hidden @change="onFilePick" />
       </aside>
 
       <main class="mapwrap">

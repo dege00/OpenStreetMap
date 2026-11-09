@@ -49,6 +49,26 @@ function search(text) {
 
 const delay = (value) => new Promise((resolve) => setTimeout(() => resolve(value), 80))
 
+/* ---------- backup: exportar / importar JSON ---------- */
+export function exportData() {
+  return clone(db)
+}
+
+export function importData(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    throw new Error('Arquivo inválido: esperado um objeto JSON com os dados da rede.')
+  }
+  const clean = {}
+  for (const key of Object.keys(LABELS)) {
+    const list = obj[key]
+    if (list == null) { clean[key] = []; continue }
+    if (!Array.isArray(list)) throw new Error(`Campo "${key}" deve ser uma lista.`)
+    clean[key] = clone(list)
+  }
+  save(clean)
+  return clone(clean)
+}
+
 const api = {
   async get(url, cfg) {
     const u = String(url).replace(/^\/+|\/+$/g, '')

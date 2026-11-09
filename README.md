@@ -17,3 +17,4 @@ Mostra OLTs, CTOs, CEOs, postes, torres, clientes e cabos e ainda vai ler kml pa
 - **v0.4** - busca e régua de medição
 - **v0.5** - edição com painel lateral e API mock
 - **v1.0** - versão "final" (drop, trecho, satélite, white-label)
+- **v1.1** - exportação/importação de dados em JSON
