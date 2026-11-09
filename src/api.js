@@ -65,8 +65,9 @@ export function importData(obj) {
     if (!Array.isArray(list)) throw new Error(`Campo "${key}" deve ser uma lista.`)
     clean[key] = clone(list)
   }
-  save(clean)
-  return clone(clean)
+  db = clean
+  save(db)
+  return clone(db)
 }
 
 const api = {
