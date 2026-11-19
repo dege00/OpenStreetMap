@@ -28,7 +28,9 @@ function nextId(list) {
   return list.reduce((max, x) => Math.max(max, Number(x.id) || 0), 0) + 1
 }
 function normCable(c) {
-  return { ...c, length_m: Math.round(pathLengthM(c.path || [])) }
+  const item = c && typeof c === 'object' ? c : {}
+  const path = Array.isArray(item.path) ? item.path : []
+  return { ...item, length_m: Math.round(pathLengthM(path)) }
 }
 export function searchItems(source, text) {
   const s = String(text || '').trim().toLowerCase()
@@ -54,7 +56,7 @@ export function exportData() {
   return clone(db)
 }
 
-export function importData(obj) {
+export function normalizeDb(obj) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
     throw new Error('Arquivo inválido: esperado um objeto JSON com os dados da rede.')
   }
@@ -63,9 +65,13 @@ export function importData(obj) {
     const list = obj[key]
     if (list == null) { clean[key] = []; continue }
     if (!Array.isArray(list)) throw new Error(`Campo "${key}" deve ser uma lista.`)
-    clean[key] = clone(list)
+    clean[key] = clone(list).map((it) => (key === 'cable' ? normCable(it) : it))
   }
-  db = clean
+  return clean
+}
+
+export function importData(obj) {
+  db = normalizeDb(obj)
   save(db)
   return clone(db)
 }
