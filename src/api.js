@@ -1,5 +1,5 @@
 // API mock: guarda os dados no localStorage para o mapa funcionar sem backend.
-import { seedData, pathLengthM } from './data'
+import { seedData, pathLengthM } from './data.js'
 
 const KEY = 'dukon_mock_db_v1'
 const PLURAL_TO_KEY = { olts: 'olt', ctos: 'cto', ceos: 'ceo', poles: 'pole', towers: 'tower', customers: 'customer', cables: 'cable' }
