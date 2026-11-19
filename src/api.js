@@ -30,12 +30,12 @@ function nextId(list) {
 function normCable(c) {
   return { ...c, length_m: Math.round(pathLengthM(c.path || [])) }
 }
-function search(text) {
+export function searchItems(source, text) {
   const s = String(text || '').trim().toLowerCase()
   if (!s) return []
   const out = []
   for (const key of Object.keys(LABELS)) {
-    for (const it of db[key] || []) {
+    for (const it of source[key] || []) {
       const hay = [it.name, it.address, it.observation, it.code, it.plan, it.model, it.document]
         .filter(Boolean)
         .join(' ')
@@ -73,7 +73,7 @@ export function importData(obj) {
 const api = {
   async get(url, cfg) {
     const u = String(url).replace(/^\/+|\/+$/g, '')
-    if (u === 'search') return { data: await delay(search(cfg?.params?.q)) }
+    if (u === 'search') return { data: await delay(searchItems(db, cfg?.params?.q)) }
     if (u === 'settings') return { data: { map_lat: -23.55, map_lng: -46.63, map_zoom: 14, distance_unit: 'auto' } }
     if (u === 'auth/me') return { data: { username: 'Admin', role: 'admin' } }
     const key = PLURAL_TO_KEY[u.split('/')[0]]
