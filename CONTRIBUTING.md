@@ -26,8 +26,8 @@ O projeto abre em `http://localhost:5173`.
 
 Usamos mensagens curtas no estilo:
 
-- `feat: adiciona exportacao para GeoJSON`
-- `fix: corrige calculo de portas livres da CTO`
+- `feat: adiciona exportação para GeoJSON`
+- `fix: corrige cálculo de portas livres da CTO`
 - `docs: atualiza README`
 - `ci: ajusta workflow de build`
 
