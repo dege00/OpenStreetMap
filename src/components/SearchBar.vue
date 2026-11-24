@@ -5,7 +5,7 @@ const props = defineProps({
   modelValue: { type: String, default: '' },
   results: { type: Array, default: () => [] },
   open: { type: Boolean, default: false },
-  placeholder: { type: String, default: 'Buscar CTO, cliente, cabo ou observação…' },
+  placeholder: { type: String, default: 'Buscar CTO, cliente, cabo ou observação...' },
 })
 const emit = defineEmits(['update:modelValue', 'update:open', 'select'])
 
@@ -51,9 +51,9 @@ function onKeydown(e) {
   <div class="search">
     <input :value="modelValue" type="search" :placeholder="placeholder" aria-label="Buscar" autocomplete="off"
       @input="onInput" @focus="emit('update:open', true)" @keydown="onKeydown" />
-    <button v-if="modelValue" type="button" class="clear" aria-label="Limpar busca" @click="clear">✕</button>
+    <button v-if="modelValue" type="button" class="clear" aria-label="Limpar busca" @click="clear">×</button>
     <ul v-if="visible" class="results" role="listbox">
-      <li v-if="!results.length" class="empty">Nada encontrado para “{{ modelValue }}”.</li>
+      <li v-if="!results.length" class="empty">Nada encontrado para "{{ modelValue }}".</li>
       <li v-for="(r, i) in results" :key="r.type + r.id" :class="{ on: i === active }"
         role="option" :aria-selected="i === active" @mousedown.prevent="choose(r)">
         <b>{{ r.name }}</b><small>{{ r.subtitle }}</small>
