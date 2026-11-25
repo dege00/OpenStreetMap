@@ -19,15 +19,15 @@ O projeto abre em `http://localhost:5173`.
    - `fix/nome-do-bug`
    - `docs/o-que-mudou`
 3. Faça commits pequenos e claros.
-4. Rode o build antes de abrir o PR: `npm run build`
+4. Rode os testes e o build antes de abrir o PR: `npm test && npm run build`
 5. Abra o Pull Request explicando **o que** mudou e **como testar**.
 
 ## Padrão de commits
 
 Usamos mensagens curtas no estilo:
 
-- `feat: adiciona exportacao para GeoJSON`
-- `fix: corrige calculo de portas livres da CTO`
+- `feat: adiciona exportação para GeoJSON`
+- `fix: corrige cálculo de portas livres da CTO`
 - `docs: atualiza README`
 - `ci: ajusta workflow de build`
 

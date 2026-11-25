@@ -1,5 +1,5 @@
 // API mock: guarda os dados no localStorage para o mapa funcionar sem backend.
-import { seedData, pathLengthM } from './data'
+import { seedData, pathLengthM } from './data.js'
 
 const KEY = 'dukon_mock_db_v1'
 const PLURAL_TO_KEY = { olts: 'olt', ctos: 'cto', ceos: 'ceo', poles: 'pole', towers: 'tower', customers: 'customer', cables: 'cable' }
@@ -28,14 +28,16 @@ function nextId(list) {
   return list.reduce((max, x) => Math.max(max, Number(x.id) || 0), 0) + 1
 }
 function normCable(c) {
-  return { ...c, length_m: Math.round(pathLengthM(c.path || [])) }
+  const item = c && typeof c === 'object' ? c : {}
+  const path = Array.isArray(item.path) ? item.path : []
+  return { ...item, length_m: Math.round(pathLengthM(path)) }
 }
-function search(text) {
+export function searchItems(source, text) {
   const s = String(text || '').trim().toLowerCase()
   if (!s) return []
   const out = []
   for (const key of Object.keys(LABELS)) {
-    for (const it of db[key] || []) {
+    for (const it of source[key] || []) {
       const hay = [it.name, it.address, it.observation, it.code, it.plan, it.model, it.document]
         .filter(Boolean)
         .join(' ')
@@ -54,7 +56,7 @@ export function exportData() {
   return clone(db)
 }
 
-export function importData(obj) {
+export function normalizeDb(obj) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
     throw new Error('Arquivo inválido: esperado um objeto JSON com os dados da rede.')
   }
@@ -63,9 +65,13 @@ export function importData(obj) {
     const list = obj[key]
     if (list == null) { clean[key] = []; continue }
     if (!Array.isArray(list)) throw new Error(`Campo "${key}" deve ser uma lista.`)
-    clean[key] = clone(list)
+    clean[key] = clone(list).map((it) => (key === 'cable' ? normCable(it) : it))
   }
-  db = clean
+  return clean
+}
+
+export function importData(obj) {
+  db = normalizeDb(obj)
   save(db)
   return clone(db)
 }
@@ -73,7 +79,7 @@ export function importData(obj) {
 const api = {
   async get(url, cfg) {
     const u = String(url).replace(/^\/+|\/+$/g, '')
-    if (u === 'search') return { data: await delay(search(cfg?.params?.q)) }
+    if (u === 'search') return { data: await delay(searchItems(db, cfg?.params?.q)) }
     if (u === 'settings') return { data: { map_lat: -23.55, map_lng: -46.63, map_zoom: 14, distance_unit: 'auto' } }
     if (u === 'auth/me') return { data: { username: 'Admin', role: 'admin' } }
     const key = PLURAL_TO_KEY[u.split('/')[0]]

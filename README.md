@@ -2,19 +2,34 @@
 
 Sistema web para mapeamento e documentação de redes **FTTH** sobre o **OpenStreetMap**.
 Mostra OLTs, CTOs, CEOs, postes, torres, clientes e cabos e ainda vai importar e exportar kml
+Aplicação web para mapeamento de rede FTTH sobre OpenStreetMap, construída com Vue 3, Vite e Leaflet.
 
-## tecnologias
+## Requisitos
 
-- **Vue 3 + Vite**
-- **Leaflet + OpenStreetMap** (pq sou pobre)
-- **Bootstrap Icons** (alguns icons)
+- Node.js 20+
+- npm
 
-## versaao
+## Instalação
 
-- **v0.1** - estrutura do projeto + mapa base
-- **v0.2** - marcadores com ícones, status e camadas
-- **v0.3** - cabos com cor/espessura e painel de detalhes
-- **v0.4** - busca e régua de medição
-- **v0.5** - edição com painel lateral e API mock
-- **v1.0** - versão "final" (drop, trecho, satélite, white-label)
-- **v1.1** - exportação/importação de dados em JSON
+```bash
+npm install
+```
+
+## Desenvolvimento
+
+```bash
+npm run dev
+```
+
+## Scripts
+
+- `npm run dev`: inicia o servidor de desenvolvimento
+- `npm run build`: gera a build de produção
+- `npm run preview`: pré-visualiza a build
+- `npm test`: executa os testes com `node --test`
+
+## Estrutura
+
+- `src/`: código da aplicação
+- `tests/`: testes automatizados
+- `.github/workflows/`: pipelines de CI

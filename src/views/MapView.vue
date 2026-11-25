@@ -7,6 +7,7 @@ import api, { logout, errText, exportData, importData } from '../api'
 import { state, formatDist } from '../state'
 import { ICONS } from '../icons'
 import CableStyle from '../components/CableStyle.vue'
+import SearchBar from '../components/SearchBar.vue'
 import { toGeoJSON } from '../exporters/geojson'
 
 const router = useRouter()
@@ -983,15 +984,7 @@ function exportGeoJSON() {
         <img v-if="state.branding.logo_url" :src="state.branding.logo_url" alt="" />
         <strong>{{ state.branding.company_name }}</strong>
       </div>
-      <div class="search">
-        <input v-model="q" placeholder="Buscar CTO, cliente, cabo ou observação…" @focus="showResults = true" @keydown.esc="showResults = false" aria-label="Buscar" />
-        <ul v-if="showResults && q.trim().length >= 2" class="results">
-          <li v-if="!results.length" class="muted empty">Nada encontrado para “{{ q }}”.</li>
-          <li v-for="r in results" :key="r.type + r.id" @click="pick(r)">
-            <b>{{ r.name }}</b><small>{{ r.subtitle }}</small>
-          </li>
-        </ul>
-      </div>
+      <SearchBar v-model="q" v-model:open="showResults" :results="results" @select="pick" />
       <nav>
         <span class="muted who">{{ state.user?.username }}</span>
         <button class="btn ghost" @click="router.push('/settings')">Configurações</button>
@@ -1186,14 +1179,6 @@ function exportGeoJSON() {
 .top { background: var(--ink); color: #fff; display: flex; align-items: center; gap: 16px; padding: 0 14px; height: 52px; flex: none; }
 .brand { display: flex; align-items: center; gap: 8px; font-size: 17px; min-width: 130px; }
 .brand img { height: 28px; }
-.search { position: relative; flex: 1; max-width: 560px; }
-.search input { background: var(--ink-2); border-color: #2c4560; color: #fff; }
-.search input::placeholder { color: #8ea1b6; }
-.results { position: absolute; top: 40px; left: 0; right: 0; background: #fff; color: var(--ink); list-style: none; margin: 0; padding: 4px 0;
-  border-radius: var(--radius); max-height: 60vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.3); z-index: 2000; }
-.results li { padding: 8px 12px; cursor: pointer; display: flex; flex-direction: column; }
-.results li:hover { background: #eef3f6; }
-.results small, .empty { color: var(--muted); } .empty { padding: 10px 12px; cursor: default; }
 nav { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .who { color: #aab8c8; margin-right: 6px; }
 .btn.ghost { background: transparent; border-color: transparent; color: inherit; }
