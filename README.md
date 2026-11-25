@@ -1,5 +1,7 @@
 # ftth (dukon)
 
+Sistema web para mapeamento e documentação de redes **FTTH** sobre o **OpenStreetMap**.
+Mostra OLTs, CTOs, CEOs, postes, torres, clientes e cabos e ainda vai importar e exportar kml
 Aplicação web para mapeamento de rede FTTH sobre OpenStreetMap, construída com Vue 3, Vite e Leaflet.
 
 ## Requisitos
